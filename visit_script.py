@@ -21,7 +21,7 @@ def visit_once(index):
         print(f"[失敗] 第 {index + 1} 次訪問發生錯誤: {e}")
 
 def main():
-    print(開始執行共 {TOTAL_VISITS} 次訪問任務...)
+    print(f"開始執行共 {TOTAL_VISITS} 次訪問任務...")  # <-- 這裡加上了正確的引號與 f-string 格式
     # 使用多執行緒（ThreadPoolExecutor）同時發送請求，提升效率
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         executor.map(visit_once, range(TOTAL_VISITS))
