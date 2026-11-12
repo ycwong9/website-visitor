@@ -1,37 +1,31 @@
-import asyncio
-from playwright.async_api import async_playwright
+import concurrent.futures
+import requests
 
 TARGET_URL = "https://consularprotection-travelsafety-exhibition.hk/360/zh?mode=&sid=scene_1"
 TOTAL_VISITS = 50
 
-async def visit_page(browser, index):
-    page = await browser.new_page()
-    try:
-        # 前往網址，設定 60 秒逾時
-        await page.goto(TARGET_URL, timeout=60000)
-        # 等待 5 秒讓 360 度環景資源完整載入
-        await asyncio.sleep(5)
-        print(f"[成功] 第 {index + 1} 次瀏覽完成")
-    except Exception as e:
-        print(f"[失敗] 第 {index + 1} 次瀏覽發生錯誤: {e}")
-    finally:
-        await page.close()
+# 模擬真實瀏覽器的 User-Agent，避免被伺服器阻擋
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+}
 
-async def main():
-    async with async_playwright() as p:
-        # 啟動無頭瀏覽器 (在背景執行，不顯示視窗)
-        browser = await p.chromium.launch(headless=True)
-        
-        # 為了平衡執行速度，每次同時跑 5 個分頁
-        batch_size = 5
-        for i in range(0, TOTAL_VISITS, batch_size):
-            current_batch = range(i, min(i + batch_size, TOTAL_VISITS))
-            tasks = [visit_page(browser, idx) for idx in current_batch]
-            await asyncio.gather(*tasks)
-            # 批次之間休息 2 秒
-            await asyncio.sleep(2)
-            
-        await browser.close()
+def visit_once(index):
+    try:
+        # 發送 GET 請求模擬訪問
+        response = requests.get(TARGET_URL, headers=HEADERS, timeout=15)
+        if response.status_code == 200:
+            print(f"[成功] 第 {index + 1} 次訪問完成 (狀態碼: 200)")
+        else:
+            print(f"[警告] 第 {index + 1} 次訪問回應狀態碼: {response.status_code}")
+    except Exception as e:
+        print(f"[失敗] 第 {index + 1} 次訪問發生錯誤: {e}")
+
+def main():
+    print(開始執行共 {TOTAL_VISITS} 次訪問任務...)
+    # 使用多執行緒（ThreadPoolExecutor）同時發送請求，提升效率
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        executor.map(visit_once, range(TOTAL_VISITS))
+    print("所有訪問任務已執行完畢！")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
